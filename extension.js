@@ -67,6 +67,16 @@ function importExts(extensions, index) {
 				vscode.window.setStatusBarMessage(`${index + 1} of ${extensions.length} | Importing.. ${extensions[index]}`);
 				updateReport(`Importing...`, `${index + 1} of ${extensions.length} | Importing.. ${extensions[index]}`, false);
 
+				if (extensions[index] == "aslamanver.vsc-export") {
+
+					updateReport(`Importing...`, ` | Success <br/>`, false);
+
+					index++
+					importExts(extensions, index);
+
+					return;
+				}
+
 				exec(`code --install-extension ${extensions[index]}`, (error, stdout, stderr) => {
 
 					if (error) {
