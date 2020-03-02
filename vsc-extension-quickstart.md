@@ -7,7 +7,9 @@ This extension helps you to export all of your extensions installed in VS Code i
 Amazing right? 
 You can now don't want to host your source code project into Git without the extensions. No worries, just push the `vsc-extensions.txt` file along with your project so when you pull it there is a single command to get all the extensions back to your system.
 
-[![Screenshot](https://raw.githubusercontent.com/aslamanver/jar-builder/master/resources/screens.gif)](https://raw.githubusercontent.com/aslamanver/jar-builder/master/resources/screens.gif)
+[![Export](https://raw.githubusercontent.com/aslamanver/vsc-export/master/resources/screenexport.gif)](https://raw.githubusercontent.com/aslamanver/vsc-export/master/resources/screenexport.gif)
+
+[![Import](https://raw.githubusercontent.com/aslamanver/vsc-export/master/resources/screenimport.gif)](https://raw.githubusercontent.com/aslamanver/vsc-export/master/resources/screenimport.gif)
 
 ## Requirements
 
