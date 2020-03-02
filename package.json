@@ -41,7 +41,7 @@
 	"scripts": {
 		"lint": "eslint .",
 		"pretest": "npm run lint",
-		"test": "node ./test/runTest.js"
+		"test": "node_modules/mocha/bin/mocha ./test/tests.js"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.1",
