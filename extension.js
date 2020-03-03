@@ -2,6 +2,9 @@ const vscode = require('vscode');
 const fs = require('fs');
 const { exec } = require("child_process");
 
+const terminal = vscode.window.createTerminal(`VSC Export`);
+const rootPath = vscode.workspace.rootPath;
+
 var reportPanel;
 var reportText, reportHead = `<h4>VSC Extensions | Export & Import</h4> <hr/> <br/>`;
 var reportTitle = `VSC Extension - Report | `;
@@ -36,8 +39,6 @@ function importStart() {
 
 	vscode.window.setStatusBarMessage('Please wait, importing...');
 	updateReport(`Importing...`, `Please wait, importing... <br/><br/>`, true);
-
-	let rootPath = vscode.workspace.rootPath;
 
 	fs.readFile(rootPath + '/vsc-extensions.txt', 'utf8', function (err, data) {
 
@@ -77,21 +78,35 @@ function importExts(extensions, index) {
 					return;
 				}
 
-				exec(`code --install-extension ${extensions[index]}`, (error, stdout, stderr) => {
+				terminal.show();
+				terminal.sendText(`code --install-extension ${extensions[index]}`);
+				terminal.processId.then(pid => {
 
-					if (error) {
-
-						importFailed++;
-						vscode.window.setStatusBarMessage(`Failed to import ${extensions[index]}`);
-						updateReport(`Importing...`, ` | Failed <br/>`, false);
-
-					} else {
-						updateReport(`Importing...`, ` | Success <br/>`, false);
-					}
+					updateReport(`Importing...`, ` | Success <br/>`, false);
 
 					index++
 					importExts(extensions, index);
+
 				});
+
+				if (false) {
+
+					exec(`code --install-extension ${extensions[index]}`, (error, stdout, stderr) => {
+
+						if (error) {
+
+							importFailed++;
+							vscode.window.setStatusBarMessage(`Failed to import ${extensions[index]}`);
+							updateReport(`Importing...`, ` | Failed <br/>`, false);
+
+						} else {
+							updateReport(`Importing...`, ` | Success <br/>`, false);
+						}
+
+						index++
+						importExts(extensions, index);
+					});
+				}
 			}
 
 		} else {
@@ -106,39 +121,69 @@ function exportExts() {
 	vscode.window.setStatusBarMessage(`Please wait, exporting...`);
 	updateReport(`Exporting...`, `Please wait, exporting...`, true);
 
-	exec("code --list-extensions", (error, stdout, stderr) => {
+	terminal.sendText(`code --list-extensions > vsc-extensions.txt`);
+	terminal.processId.then(pid => {
 
-		if (!error) {
+		let msg = `Successfully exported into 'vsc-extensions.txt'`;
 
-			let rootPath = vscode.workspace.rootPath;
+		vscode.window.setStatusBarMessage(msg);
+		vscode.window.showInformationMessage(msg);
+		updateReport(`Successfully exported`, msg + '<br/><br/>', true);
 
-			fs.writeFile(rootPath + '/vsc-extensions.txt', stdout, function (err, file) {
+		fs.readFile(rootPath + '/vsc-extensisons.txt', 'utf8', function (err, data) {
 
-				if (!err) {
+			if (!err) {
 
-					let msg = `Successfully exported into 'vsc-extensions.txt'`;
+				let list = data.trim().split("\n");
 
-					vscode.window.setStatusBarMessage(msg);
-					vscode.window.showInformationMessage(msg);
-					updateReport(`Successfully exported`, msg + '<br/><br/>', true);
+				list.forEach((name, i) => {
+					updateReport(null, `${i + 1}. ${name} <br/>`, false);
+				});
 
-					let list = stdout.trim().split("\n");
+			} else {
 
-					list.forEach((name, i) => {
-						updateReport(null, `${i + 1}. ${name} <br/>`, false);
-					});
-
-				} else {
-					vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
-					updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
-				}
-			});
-
-		} else {
-			vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${stderr}`);
-			updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${stderr}`, true);
-		}
+				vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
+				updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
+			}
+		});
 	});
+
+	if (false) {
+
+		exec("code --list-extensions", (error, stdout, stderr) => {
+
+			if (!error) {
+
+				let rootPath = vscode.workspace.rootPath;
+
+				fs.writeFile(rootPath + '/vsc-extensions.txt', stdout, function (err, file) {
+
+					if (!err) {
+
+						let msg = `Successfully exported into 'vsc-extensions.txt'`;
+
+						vscode.window.setStatusBarMessage(msg);
+						vscode.window.showInformationMessage(msg);
+						updateReport(`Successfully exported`, msg + '<br/><br/>', true);
+
+						let list = stdout.trim().split("\n");
+
+						list.forEach((name, i) => {
+							updateReport(null, `${i + 1}. ${name} <br/>`, false);
+						});
+
+					} else {
+						vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
+						updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
+					}
+				});
+
+			} else {
+				vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${stderr}`);
+				updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${stderr}`, true);
+			}
+		});
+	}
 }
 
 function updateReport(title, text, clear) {
