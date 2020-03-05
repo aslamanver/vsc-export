@@ -17,12 +17,12 @@ function activate(context) {
 
 	let exportCommand = vscode.commands.registerCommand('extension.vsc-export', function () {
 
-		exportExts();
+		exportExtsTerminal();
 	});
 
 	let importCommand = vscode.commands.registerCommand('extension.vsc-import', function () {
 
-		importStart();
+		importStartTerminal();
 	});
 
 	context.subscriptions.push(exportCommand);
@@ -33,7 +33,7 @@ exports.activate = activate;
 
 function deactivate() { }
 
-function importStart() {
+function importStartTerminal() {
 
 	importFailed = 0;
 
@@ -51,7 +51,7 @@ function importStart() {
 
 			watchFile('Import');
 
-			importExts(data.trim().split("\n"), 0);
+			importExtsTerminal(data.trim().split("\n"), 0);
 
 		} else {
 
@@ -62,7 +62,7 @@ function importStart() {
 	});
 }
 
-function importExts(extensions, index) {
+function importExtsTerminal(extensions, index) {
 
 	if (extensions.length > 0) {
 
@@ -73,7 +73,7 @@ function importExts(extensions, index) {
 				if (extensions[index] == "aslamanver.vsc-export") {
 
 					index++
-					importExts(extensions, index);
+					importExtsTerminal(extensions, index);
 
 					return;
 				}
@@ -83,7 +83,7 @@ function importExts(extensions, index) {
 				terminal.processId.then(pid => {
 
 					index++
-					importExts(extensions, index);
+					importExtsTerminal(extensions, index);
 
 				});
 			}
@@ -96,7 +96,7 @@ function importExts(extensions, index) {
 	}
 }
 
-function exportExts() {
+function exportExtsTerminal() {
 
 	terminal.sendText(`echo 'START\n' > vsclog.txt`);
 	terminal.sendText(`echo 'Exporting...\n' >> vsclog.txt`);
