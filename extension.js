@@ -45,11 +45,16 @@ function importStart() {
 		if (!err) {
 
 			vscode.window.setStatusBarMessage(`Importing from 'vsc-extensions.txt'`);
-			updateReport(`Importing...`, `Importing from 'vsc-extensions.txt' <br/><br/>`, false);
+
+			terminal.sendText(`echo 'START\n' > vsclog.txt`);
+			terminal.sendText(`echo 'Importing from 'vsc-extensions.txt'...\n' >> vsclog.txt`);
+
+			watchFile('Import');
 
 			importExts(data.trim().split("\n"), 0);
 
 		} else {
+
 			vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
 			updateReport(`Import failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
 		}
@@ -65,12 +70,7 @@ function importExts(extensions, index) {
 
 			if (extensions[index].length > 2) {
 
-				vscode.window.setStatusBarMessage(`${index + 1} of ${extensions.length} | Importing.. ${extensions[index]}`);
-				updateReport(`Importing...`, `${index + 1} of ${extensions.length} | Importing.. ${extensions[index]}`, false);
-
 				if (extensions[index] == "aslamanver.vsc-export") {
-
-					updateReport(`Importing...`, ` | Success <br/>`, false);
 
 					index++
 					importExts(extensions, index);
@@ -78,112 +78,38 @@ function importExts(extensions, index) {
 					return;
 				}
 
-				terminal.show();
-				terminal.sendText(`code --install-extension ${extensions[index]}`);
+				terminal.sendText(`code --install-extension ${extensions[index]} >> vsclog.txt`);
+				terminal.sendText(`echo '' >> vsclog.txt`);
 				terminal.processId.then(pid => {
-
-					updateReport(`Importing...`, ` | Success <br/>`, false);
 
 					index++
 					importExts(extensions, index);
 
 				});
-
-				if (false) {
-
-					exec(`code --install-extension ${extensions[index]}`, (error, stdout, stderr) => {
-
-						if (error) {
-
-							importFailed++;
-							vscode.window.setStatusBarMessage(`Failed to import ${extensions[index]}`);
-							updateReport(`Importing...`, ` | Failed <br/>`, false);
-
-						} else {
-							updateReport(`Importing...`, ` | Success <br/>`, false);
-						}
-
-						index++
-						importExts(extensions, index);
-					});
-				}
 			}
 
 		} else {
-			vscode.window.setStatusBarMessage(`Successfully installed extensions`);
-			updateReport(`Successfully imported`, `<h2> ${extensions.length - importFailed} of ${extensions.length} Successfully installed </h2>`, false);
+
+			terminal.sendText(`echo 'Successfully imported' >> vsclog.txt`);
+			terminal.sendText(`echo '\nEND' >> vsclog.txt`);
 		}
 	}
 }
 
 function exportExts() {
 
+	terminal.sendText(`echo 'START\n' > vsclog.txt`);
+	terminal.sendText(`echo 'Exporting...\n' >> vsclog.txt`);
+
 	vscode.window.setStatusBarMessage(`Please wait, exporting...`);
 	updateReport(`Exporting...`, `Please wait, exporting...`, true);
 
 	terminal.sendText(`code --list-extensions > vsc-extensions.txt`);
-	terminal.processId.then(pid => {
 
-		let msg = `Successfully exported into 'vsc-extensions.txt'`;
+	terminal.sendText(`echo 'Successfully exported' >> vsclog.txt`);
+	terminal.sendText(`echo '\nEND' >> vsclog.txt`);
 
-		vscode.window.setStatusBarMessage(msg);
-		vscode.window.showInformationMessage(msg);
-		updateReport(`Successfully exported`, msg + '<br/><br/>', true);
-
-		fs.readFile(rootPath + '/vsc-extensisons.txt', 'utf8', function (err, data) {
-
-			if (!err) {
-
-				let list = data.trim().split("\n");
-
-				list.forEach((name, i) => {
-					updateReport(null, `${i + 1}. ${name} <br/>`, false);
-				});
-
-			} else {
-
-				vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
-				updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
-			}
-		});
-	});
-
-	if (false) {
-
-		exec("code --list-extensions", (error, stdout, stderr) => {
-
-			if (!error) {
-
-				let rootPath = vscode.workspace.rootPath;
-
-				fs.writeFile(rootPath + '/vsc-extensions.txt', stdout, function (err, file) {
-
-					if (!err) {
-
-						let msg = `Successfully exported into 'vsc-extensions.txt'`;
-
-						vscode.window.setStatusBarMessage(msg);
-						vscode.window.showInformationMessage(msg);
-						updateReport(`Successfully exported`, msg + '<br/><br/>', true);
-
-						let list = stdout.trim().split("\n");
-
-						list.forEach((name, i) => {
-							updateReport(null, `${i + 1}. ${name} <br/>`, false);
-						});
-
-					} else {
-						vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
-						updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
-					}
-				});
-
-			} else {
-				vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${stderr}`);
-				updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${stderr}`, true);
-			}
-		});
-	}
+	watchFile('Export');
 }
 
 function updateReport(title, text, clear) {
@@ -191,7 +117,7 @@ function updateReport(title, text, clear) {
 	if (!isPanelActive) getReport();
 
 	reportText = clear ? reportHead + text : reportText + text;
-	reportPanel.webview.html = reportText;
+	reportPanel.webview.html = reportText + `<script>window.scrollTo(0,document.body.scrollHeight);</script>`;
 
 	if (title) {
 		reportPanel.title = reportTitle + title;
@@ -202,7 +128,7 @@ function getReport() {
 
 	if (isPanelActive) return reportPanel;
 
-	reportPanel = vscode.window.createWebviewPanel('vsc-extension', reportTitle, vscode.ViewColumn.One, {});
+	reportPanel = vscode.window.createWebviewPanel('vsc-extension', reportTitle, vscode.ViewColumn.One, { enableScripts: true });
 
 	isPanelActive = true;
 
@@ -211,6 +137,27 @@ function getReport() {
 	});
 
 	return reportPanel;
+}
+
+function watchFile(title) {
+
+	fs.watchFile(rootPath + '/vsclog.txt', (curr, prev) => {
+
+		fs.readFile(rootPath + '/vsclog.txt', 'utf8', function (err, data) {
+
+			if (data.includes('END')) {
+				fs.unwatchFile(rootPath + '/vsclog.txt');
+				fs.unlinkSync(rootPath + '/vsclog.txt');
+
+				let msg = title == 'Import' ? 'imported' : 'exported';
+				vscode.window.setStatusBarMessage(`Successfully ` + msg + ` extensions`);
+			}
+
+			data = '<p>' + data.replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>") + '</p>';
+
+			updateReport(title, data, true);
+		});
+	});
 }
 
 module.exports = {
