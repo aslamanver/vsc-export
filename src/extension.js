@@ -29,6 +29,119 @@ function activate(context) {
 	context.subscriptions.push(importCommand);
 }
 
+/* OLD */
+function importStart() {
+
+	importFailed = 0;
+
+	vscode.window.setStatusBarMessage('Please wait, importing...');
+	updateReport(`Importing...`, `Please wait, importing... <br/><br/>`, true);
+
+	let rootPath = vscode.workspace.rootPath;
+
+	fs.readFile(rootPath + '/vsc-extensions.txt', 'utf16le', function (err, data) {
+
+		if (!err) {
+
+			vscode.window.setStatusBarMessage(`Importing from 'vsc-extensions.txt'`);
+			updateReport(`Importing...`, `Importing from 'vsc-extensions.txt' <br/><br/>`, false);
+
+			importExts(data.trim().split("\n"), 0);
+
+		} else {
+			vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
+			updateReport(`Import failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
+		}
+
+	});
+}
+
+function importExts(extensions, index) {
+
+	if (extensions.length > 0) {
+
+		if (index < extensions.length) {
+
+			if (extensions[index].length > 2) {
+
+				vscode.window.setStatusBarMessage(`${index + 1} of ${extensions.length} | Importing.. ${extensions[index]}`);
+				updateReport(`Importing...`, `${index + 1} of ${extensions.length} | Importing.. ${extensions[index]}`, false);
+
+				if (extensions[index] == "aslamanver.vsc-export") {
+
+					updateReport(`Importing...`, ` | Success <br/>`, false);
+
+					index++
+					importExts(extensions, index);
+
+					return;
+				}
+
+				exec(`code --install-extension ${extensions[index]}`, (error, stdout, stderr) => {
+
+					if (error) {
+
+						importFailed++;
+						vscode.window.setStatusBarMessage(`Failed to import ${extensions[index]}`);
+						updateReport(`Importing...`, ` | Failed <br/>`, false);
+
+					} else {
+						updateReport(`Importing...`, ` | Success <br/>`, false);
+					}
+
+					index++
+					importExts(extensions, index);
+				});
+			}
+
+		} else {
+			vscode.window.setStatusBarMessage(`Successfully installed extensions`);
+			updateReport(`Successfully imported`, `<h2> ${extensions.length - importFailed} of ${extensions.length} Successfully installed </h2>`, false);
+		}
+	}
+}
+
+function exportExts() {
+
+	vscode.window.setStatusBarMessage(`Please wait, exporting...`);
+	updateReport(`Exporting...`, `Please wait, exporting...`, true);
+
+	exec("code --list-extensions", (error, stdout, stderr) => {
+
+		if (!error) {
+
+			let rootPath = vscode.workspace.rootPath;
+
+			fs.writeFile(rootPath + '/vsc-extensions.txt', stdout, function (err, file) {
+
+				if (!err) {
+
+					let msg = `Successfully exported into 'vsc-extensions.txt'`;
+
+					vscode.window.setStatusBarMessage(msg);
+					vscode.window.showInformationMessage(msg);
+					updateReport(`Successfully exported`, msg + '<br/><br/>', true);
+
+					let list = stdout.trim().split("\n");
+
+					list.forEach((name, i) => {
+						updateReport(null, `${i + 1}. ${name} <br/>`, false);
+					});
+
+				} else {
+					vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
+					updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
+				}
+			});
+
+		} else {
+			vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${stderr}`);
+			updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${stderr}`, true);
+		}
+	});
+}
+/* OLD */
+
 exports.activate = activate;
 
 function deactivate() { }
@@ -40,7 +153,7 @@ function importStartTerminal() {
 	vscode.window.setStatusBarMessage('Please wait, importing...');
 	updateReport(`Importing...`, `Please wait, importing... <br/><br/>`, true);
 
-	fs.readFile(rootPath + '/vsc-extensions.txt', 'utf8', function (err, data) {
+	fs.readFile(rootPath + '/vsc-extensions.txt', 'utf16le', function (err, data) {
 
 		if (!err) {
 
@@ -78,7 +191,7 @@ function importExtsTerminal(extensions, index) {
 					return;
 				}
 
-				terminal.sendText(`code --install-extension ${extensions[index]} >> vsclog.txt`);
+				terminal.sendText(`code --install-extension '${extensions[index]}' >> vsclog.txt`);
 				terminal.sendText(`echo '' >> vsclog.txt`);
 				terminal.processId.then(pid => {
 
@@ -143,7 +256,7 @@ function watchFile(title) {
 
 	fs.watchFile(rootPath + '/vsclog.txt', (curr, prev) => {
 
-		fs.readFile(rootPath + '/vsclog.txt', 'utf8', function (err, data) {
+		fs.readFile(rootPath + '/vsclog.txt', 'utf16le', function (err, data) {
 
 			if (data.includes('END')) {
 				fs.unwatchFile(rootPath + '/vsclog.txt');
