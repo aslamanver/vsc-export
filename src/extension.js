@@ -2,9 +2,9 @@ const vscode = require('vscode');
 const fs = require('fs');
 const { exec } = require("child_process");
 
-const terminal = vscode.window.createTerminal(`VSC Export`);
 const rootPath = vscode.workspace.rootPath;
 
+var terminal = vscode.window.createTerminal(`VSC Export`);
 var reportPanel;
 var reportText, reportHead = `<h4>VSC Extensions | Export & Import</h4> <hr/> <br/>`;
 var reportTitle = `VSC Extension - Report | `;
@@ -17,10 +17,32 @@ function activate(context) {
 
 	let exportCommand = vscode.commands.registerCommand('extension.vsc-export', function () {
 
+		if (process.platform == 'win32') {
+			exec('where  powershell', (err, stdout) => {
+				if (!err) {
+					terminal.dispose();
+					terminal = vscode.window.createTerminal(`VSC Export`, stdout.trim());
+				}
+				exportExtsTerminal();
+			});
+			return;
+		}
+
 		exportExtsTerminal();
 	});
 
 	let importCommand = vscode.commands.registerCommand('extension.vsc-import', function () {
+
+		if (process.platform == 'win32') {
+			exec('where  powershell', (err, stdout) => {
+				if (!err) {
+					terminal.dispose();
+					terminal = vscode.window.createTerminal(`VSC Export`, stdout.trim());
+				}
+				importStartTerminal();
+			});
+			return;
+		}
 
 		importStartTerminal();
 	});
