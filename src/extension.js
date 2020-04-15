@@ -4,7 +4,7 @@ const { exec } = require("child_process");
 
 const rootPath = vscode.workspace.rootPath;
 
-var terminal = vscode.window.createTerminal(`VSC Export`);
+var terminal = vscode.window.createTerminal({ name: 'VSC Export', hideFromUser: true });
 var reportPanel;
 var reportText, reportHead = `<h4>VSC Extensions | Export & Import</h4> <hr/> <br/>`;
 var reportTitle = `VSC Extension - Report | `;
@@ -21,7 +21,11 @@ function activate(context) {
 			exec('where  powershell', (err, stdout) => {
 				if (!err) {
 					terminal.dispose();
-					terminal = vscode.window.createTerminal(`VSC Export`, stdout.trim());
+					terminal = vscode.window.createTerminal({
+						name: 'VSC Export',
+						shellPath: stdout.trim(),
+						hideFromUser: true
+					});
 				}
 				exportExtsTerminal();
 			});
@@ -37,7 +41,11 @@ function activate(context) {
 			exec('where  powershell', (err, stdout) => {
 				if (!err) {
 					terminal.dispose();
-					terminal = vscode.window.createTerminal(`VSC Export`, stdout.trim());
+					terminal = vscode.window.createTerminal({
+						name: 'VSC Export',
+						shellPath: stdout.trim(),
+						hideFromUser: true
+					});
 				}
 				importStartTerminal();
 			});
@@ -281,6 +289,9 @@ function watchFile(title) {
 		fs.readFile(rootPath + '/vsclog.txt', process.platform == 'win32' ? 'ucs2' : 'ucs2', function (err, data) {
 
 			if (data.includes('END')) {
+
+				terminal.dispose();
+
 				fs.unwatchFile(rootPath + '/vsclog.txt');
 				fs.unlinkSync(rootPath + '/vsclog.txt');
 
