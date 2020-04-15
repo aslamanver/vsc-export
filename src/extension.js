@@ -290,8 +290,6 @@ function watchFile(title) {
 
 			if (data.includes('END')) {
 
-				terminal.dispose();
-
 				fs.unwatchFile(rootPath + '/vsclog.txt');
 				fs.unlinkSync(rootPath + '/vsclog.txt');
 
