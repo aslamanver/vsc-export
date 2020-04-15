@@ -153,7 +153,7 @@ function importStartTerminal() {
 	vscode.window.setStatusBarMessage('Please wait, importing...');
 	updateReport(`Importing...`, `Please wait, importing... <br/><br/>`, true);
 
-	fs.readFile(rootPath + '/vsc-extensions.txt', 'utf16le', function (err, data) {
+	fs.readFile(rootPath + '/vsc-extensions.txt', process.platform == 'win32' ? 'utf8' : 'utf8', function (err, data) {
 
 		if (!err) {
 
@@ -256,7 +256,7 @@ function watchFile(title) {
 
 	fs.watchFile(rootPath + '/vsclog.txt', (curr, prev) => {
 
-		fs.readFile(rootPath + '/vsclog.txt', 'utf16le', function (err, data) {
+		fs.readFile(rootPath + '/vsclog.txt', process.platform == 'win32' ? 'utf8' : 'utf8', function (err, data) {
 
 			if (data.includes('END')) {
 				fs.unwatchFile(rootPath + '/vsclog.txt');
