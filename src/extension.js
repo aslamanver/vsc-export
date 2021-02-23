@@ -4,7 +4,7 @@ const { exec } = require("child_process");
 
 const rootPath = vscode.workspace.workspaceFolders[0].uri.path;
 const logFile = '.vsclog';
-const terminalHideFromUser = false;
+const terminalHideFromUser = true;
 
 var terminal = vscode.window.createTerminal({ name: 'VSC Export', hideFromUser: terminalHideFromUser });
 var reportPanel;
