@@ -2,7 +2,8 @@ const vscode = require('vscode');
 const fs = require('fs');
 const { exec } = require("child_process");
 
-const rootPath = vscode.workspace.rootPath;
+const rootPath = vscode.workspace.workspaceFolders[0].uri.path;
+const logFile = '.vsclog';
 
 var terminal = vscode.window.createTerminal({ name: 'VSC Export', hideFromUser: true });
 var reportPanel;
@@ -66,8 +67,6 @@ function importStart() {
 
 	vscode.window.setStatusBarMessage('Please wait, importing...');
 	updateReport(`Importing...`, `Please wait, importing... <br/><br/>`, true);
-
-	let rootPath = vscode.workspace.rootPath;
 
 	fs.readFile(rootPath + '/vsc-extensions.txt', 'ucs2', function (err, data) {
 
@@ -140,8 +139,6 @@ function exportExts() {
 
 		if (!error) {
 
-			let rootPath = vscode.workspace.rootPath;
-
 			fs.writeFile(rootPath + '/vsc-extensions.txt', stdout, function (err, file) {
 
 				if (!err) {
@@ -172,7 +169,7 @@ function exportExts() {
 }
 /* OLD */
 
-exports.activate = activate;
+// exports.activate = activate;
 
 function deactivate() { }
 
@@ -189,8 +186,8 @@ function importStartTerminal() {
 
 			vscode.window.setStatusBarMessage(`Importing from 'vsc-extensions.txt'`);
 
-			terminal.sendText(`echo 'START\n' > vsclog.txt`);
-			terminal.sendText(`echo 'Importing from 'vsc-extensions.txt'...\n' >> vsclog.txt`);
+			terminal.sendText(`echo 'START\n' > ${logFile}`);
+			terminal.sendText(`echo 'Importing from 'vsc-extensions.txt'...\n' >> ${logFile}`);
 
 			watchFile('Import');
 
@@ -221,8 +218,8 @@ function importExtsTerminal(extensions, index) {
 					return;
 				}
 
-				terminal.sendText(`code --install-extension '${extensions[index]}' >> vsclog.txt`);
-				terminal.sendText(`echo '' >> vsclog.txt`);
+				terminal.sendText(`code --install-extension '${extensions[index]}' >> ${logFile}`);
+				terminal.sendText(`echo '${extensions[index]}' >> ${logFile}`);
 				terminal.processId.then(pid => {
 
 					index++
@@ -233,24 +230,24 @@ function importExtsTerminal(extensions, index) {
 
 		} else {
 
-			terminal.sendText(`echo 'Successfully imported' >> vsclog.txt`);
-			terminal.sendText(`echo '\nEND' >> vsclog.txt`);
+			terminal.sendText(`echo 'Successfully imported' >> ${logFile}`);
+			terminal.sendText(`echo '\nEND' >> ${logFile}`);
 		}
 	}
 }
 
 function exportExtsTerminal() {
 
-	terminal.sendText(`echo 'START\n' > vsclog.txt`);
-	terminal.sendText(`echo 'Exporting...\n' >> vsclog.txt`);
+	terminal.sendText(`echo 'START\n' > ${logFile}`);
+	terminal.sendText(`echo 'Exporting...\n' >> ${logFile}`);
 
 	vscode.window.setStatusBarMessage(`Please wait, exporting...`);
 	updateReport(`Exporting...`, `Please wait, exporting...`, true);
 
-	terminal.sendText(`code --list-extensions > vsc-extensions.txt`);
+	terminal.sendText(`code --list-extensions | sed '' > vsc-extensions.txt`);
 
-	terminal.sendText(`echo 'Successfully exported' >> vsclog.txt`);
-	terminal.sendText(`echo '\nEND' >> vsclog.txt`);
+	terminal.sendText(`echo 'Successfully exported' >> ${logFile}`);
+	terminal.sendText(`echo '\nEND' >> ${logFile}`);
 
 	watchFile('Export');
 }
@@ -284,14 +281,14 @@ function getReport() {
 
 function watchFile(title) {
 
-	fs.watchFile(rootPath + '/vsclog.txt', (curr, prev) => {
+	fs.watchFile(rootPath + `/${logFile}`, (curr, prev) => {
 
-		fs.readFile(rootPath + '/vsclog.txt', process.platform == 'win32' ? 'ucs2' : 'utf-8', function (err, data) {
+		fs.readFile(rootPath + `/${logFile}`, process.platform == 'win32' ? 'ucs2' : 'utf-8', function (err, data) {
 
 			if (data.includes('END')) {
 
-				fs.unwatchFile(rootPath + '/vsclog.txt');
-				fs.unlinkSync(rootPath + '/vsclog.txt');
+				fs.unwatchFile(rootPath + `/${logFile}`);
+				fs.unlinkSync(rootPath + `/${logFile}`);
 
 				let msg = title == 'Import' ? 'imported' : 'exported';
 				vscode.window.setStatusBarMessage(`Successfully ` + msg + ` extensions`);
