@@ -4,20 +4,19 @@ const { exec } = require("child_process");
 
 const rootPath = vscode.workspace.workspaceFolders[0].uri.path;
 const logFile = '.vsclog';
+const terminalHideFromUser = false;
 
-var terminal = vscode.window.createTerminal({ name: 'VSC Export', hideFromUser: true });
+var terminal = vscode.window.createTerminal({ name: 'VSC Export', hideFromUser: terminalHideFromUser });
 var reportPanel;
 var reportText, reportHead = `<h4>VSC Extensions | Export & Import</h4> <hr/> <br/>`;
 var reportTitle = `VSC Extension - Report | `;
 var isPanelActive = false;
-var importFailed = 0;
 
 function activate(context) {
 
 	console.log('Congratulations, your extension "vsc-export" is now active!');
 
 	let exportCommand = vscode.commands.registerCommand('extension.vsc-export', function () {
-
 		if (process.platform == 'win32') {
 			exec('where  powershell', (err, stdout) => {
 				if (!err) {
@@ -25,19 +24,17 @@ function activate(context) {
 					terminal = vscode.window.createTerminal({
 						name: 'VSC Export',
 						shellPath: stdout.trim(),
-						hideFromUser: true
+						hideFromUser: terminalHideFromUser
 					});
 				}
 				exportExtsTerminal();
 			});
-			return;
+		} else {
+			exportExtsTerminal();
 		}
-
-		exportExtsTerminal();
 	});
 
 	let importCommand = vscode.commands.registerCommand('extension.vsc-import', function () {
-
 		if (process.platform == 'win32') {
 			exec('where  powershell', (err, stdout) => {
 				if (!err) {
@@ -45,191 +42,62 @@ function activate(context) {
 					terminal = vscode.window.createTerminal({
 						name: 'VSC Export',
 						shellPath: stdout.trim(),
-						hideFromUser: true
+						hideFromUser: terminalHideFromUser
 					});
 				}
-				importStartTerminal();
+				importExtsTerminal();
 			});
-			return;
+		} else {
+			importExtsTerminal();
 		}
-
-		importStartTerminal();
 	});
 
 	context.subscriptions.push(exportCommand);
 	context.subscriptions.push(importCommand);
 }
 
-/* OLD */
-function importStart() {
-
-	importFailed = 0;
-
-	vscode.window.setStatusBarMessage('Please wait, importing...');
-	updateReport(`Importing...`, `Please wait, importing... <br/><br/>`, true);
-
-	fs.readFile(rootPath + '/vsc-extensions.txt', 'ucs2', function (err, data) {
-
-		if (!err) {
-
-			vscode.window.setStatusBarMessage(`Importing from 'vsc-extensions.txt'`);
-			updateReport(`Importing...`, `Importing from 'vsc-extensions.txt' <br/><br/>`, false);
-
-			importExts(data.trim().split("\n"), 0);
-
-		} else {
-			vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
-			updateReport(`Import failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
-		}
-
-	});
-}
-
-function importExts(extensions, index) {
-
-	if (extensions.length > 0) {
-
-		if (index < extensions.length) {
-
-			if (extensions[index].length > 2) {
-
-				vscode.window.setStatusBarMessage(`${index + 1} of ${extensions.length} | Importing.. ${extensions[index]}`);
-				updateReport(`Importing...`, `${index + 1} of ${extensions.length} | Importing.. ${extensions[index]}`, false);
-
-				if (extensions[index] == "aslamanver.vsc-export") {
-
-					updateReport(`Importing...`, ` | Success <br/>`, false);
-
-					index++
-					importExts(extensions, index);
-
-					return;
-				}
-
-				exec(`code --install-extension ${extensions[index]}`, (error, stdout, stderr) => {
-
-					if (error) {
-
-						importFailed++;
-						vscode.window.setStatusBarMessage(`Failed to import ${extensions[index]}`);
-						updateReport(`Importing...`, ` | Failed <br/>`, false);
-
-					} else {
-						updateReport(`Importing...`, ` | Success <br/>`, false);
-					}
-
-					index++
-					importExts(extensions, index);
-				});
-			}
-
-		} else {
-			vscode.window.setStatusBarMessage(`Successfully installed extensions`);
-			updateReport(`Successfully imported`, `<h2> ${extensions.length - importFailed} of ${extensions.length} Successfully installed </h2>`, false);
-		}
-	}
-}
-
-function exportExts() {
-
-	vscode.window.setStatusBarMessage(`Please wait, exporting...`);
-	updateReport(`Exporting...`, `Please wait, exporting...`, true);
-
-	exec("code --list-extensions", (error, stdout, stderr) => {
-
-		if (!error) {
-
-			fs.writeFile(rootPath + '/vsc-extensions.txt', stdout, function (err, file) {
-
-				if (!err) {
-
-					let msg = `Successfully exported into 'vsc-extensions.txt'`;
-
-					vscode.window.setStatusBarMessage(msg);
-					vscode.window.showInformationMessage(msg);
-					updateReport(`Successfully exported`, msg + '<br/><br/>', true);
-
-					let list = stdout.trim().split("\n");
-
-					list.forEach((name, i) => {
-						updateReport(null, `${i + 1}. ${name} <br/>`, false);
-					});
-
-				} else {
-					vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
-					updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
-				}
-			});
-
-		} else {
-			vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${stderr}`);
-			updateReport(`Export failed`, `Woops! smething went wrong <br/><br/> ${stderr}`, true);
-		}
-	});
-}
-/* OLD */
-
-// exports.activate = activate;
-
 function deactivate() { }
-
-function importStartTerminal() {
-
-	importFailed = 0;
-
-	vscode.window.setStatusBarMessage('Please wait, importing...');
-	updateReport(`Importing...`, `Please wait, importing... <br/><br/>`, true);
-
-	fs.readFile(rootPath + '/vsc-extensions.txt', process.platform == 'win32' ? 'ucs2' : 'utf-8', function (err, data) {
-
-		if (!err) {
-
-			vscode.window.setStatusBarMessage(`Importing from 'vsc-extensions.txt'`);
-
-			terminal.sendText(`echo 'START\n' > ${logFile}`);
-			terminal.sendText(`echo 'Importing from 'vsc-extensions.txt'...\n' >> ${logFile}`);
-
-			watchFile('Import');
-
-			importExtsTerminal(data.trim().split("\n"), 0);
-
-		} else {
-
-			vscode.window.setStatusBarMessage(`Woops! smething went wrong - ${err}`);
-			updateReport(`Import failed`, `Woops! smething went wrong <br/><br/> ${err}`, true);
-		}
-
-	});
-}
 
 function importExtsTerminal(extensions, index) {
 
+	if (extensions == null) {
+
+		watchFile("Import")
+
+		terminal.sendText(`echo 'START\n' > ${logFile}`);
+		terminal.sendText(`echo 'Importing...\n' >> ${logFile}`);
+
+		vscode.window.setStatusBarMessage(`Please wait, importing...`);
+		updateReport(`Importing...`, `Please wait, importing...`, true);
+
+		fs.readFile(rootPath + '/vsc-extensions.txt', process.platform == 'win32' ? 'ucs2' : 'utf-8', function (err, data) {
+			if (!err) {
+				terminal.sendText(`echo 'Importing from 'vsc-extensions.txt'...\n' >> ${logFile}`);
+				importExtsTerminal(data.trim().split("\n"), 0);
+			} else {
+				terminal.sendText(`echo 'Import failed' >> ${logFile}`);
+				terminal.sendText(`echo '\nEND' >> ${logFile}`);
+			}
+		});
+		return;
+	}
+
 	if (extensions.length > 0) {
-
 		if (index < extensions.length) {
-
 			if (extensions[index].length > 2) {
-
 				if (extensions[index] == "aslamanver.vsc-export") {
-
 					index++
 					importExtsTerminal(extensions, index);
-
 					return;
 				}
-
 				terminal.sendText(`code --install-extension '${extensions[index]}' >> ${logFile}`);
 				terminal.sendText(`echo '${extensions[index]}' >> ${logFile}`);
-				terminal.processId.then(pid => {
-
+				terminal.processId.then(() => {
 					index++
 					importExtsTerminal(extensions, index);
-
 				});
 			}
-
 		} else {
-
 			terminal.sendText(`echo 'Successfully imported' >> ${logFile}`);
 			terminal.sendText(`echo '\nEND' >> ${logFile}`);
 		}
@@ -244,10 +112,23 @@ function exportExtsTerminal() {
 	vscode.window.setStatusBarMessage(`Please wait, exporting...`);
 	updateReport(`Exporting...`, `Please wait, exporting...`, true);
 
-	terminal.sendText(`code --list-extensions | sed '' > vsc-extensions.txt`);
+	// terminal.sendText(`code --list-extensions | sed '' > vsc-extensions.txt`);
 
-	terminal.sendText(`echo 'Successfully exported' >> ${logFile}`);
-	terminal.sendText(`echo '\nEND' >> ${logFile}`);
+	exec(`code --list-extensions | sed ''`, (stderr, stdout) => {
+		if (!stderr) {
+			fs.writeFile(`${rootPath}/vsc-extensions.txt`, stdout, (stderr2) => {
+				if (!stderr2) {
+					terminal.sendText(`echo 'Successfully exported' >> ${logFile}`);
+				} else {
+					terminal.sendText(`echo 'Export failed' >> ${logFile}`);
+				}
+				terminal.sendText(`echo '\nEND' >> ${logFile}`);
+			});
+		} else {
+			terminal.sendText(`echo 'Export failed' >> ${logFile}`);
+			terminal.sendText(`echo '\nEND' >> ${logFile}`);
+		}
+	});
 
 	watchFile('Export');
 }
@@ -290,8 +171,8 @@ function watchFile(title) {
 				fs.unwatchFile(rootPath + `/${logFile}`);
 				fs.unlinkSync(rootPath + `/${logFile}`);
 
-				let msg = title == 'Import' ? 'imported' : 'exported';
-				vscode.window.setStatusBarMessage(`Successfully ` + msg + ` extensions`);
+				// let msg = title == 'Import' ? 'imported' : 'exported';
+				vscode.window.setStatusBarMessage(data.split('\n')[data.split('\n').length - 4]);
 			}
 
 			data = '<p>' + data.replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>") + '</p>';
