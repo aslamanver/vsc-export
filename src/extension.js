@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const { exec } = require("child_process");
 
-const rootPath = vscode.workspace.workspaceFolders[0].uri.path;
+const rootPath = vscode.workspace.rootPath;
 const logFile = '.vsclog';
 const terminalHideFromUser = true;
 
@@ -90,7 +90,7 @@ function importExtsTerminal(extensions, index) {
 					importExtsTerminal(extensions, index);
 					return;
 				}
-				terminal.sendText(`code --install-extension '${extensions[index]}' >> ${logFile}`);
+				terminal.sendText(`code --force --install-extension '${extensions[index]}' >> ${logFile}`);
 				terminal.sendText(`echo '${extensions[index]}' >> ${logFile}`);
 				terminal.processId.then(() => {
 					index++
@@ -112,23 +112,27 @@ function exportExtsTerminal() {
 	vscode.window.setStatusBarMessage(`Please wait, exporting...`);
 	updateReport(`Exporting...`, `Please wait, exporting...`, true);
 
-	// terminal.sendText(`code --list-extensions | sed '' > vsc-extensions.txt`);
-
-	exec(`code --list-extensions | sed ''`, (stderr, stdout) => {
-		if (!stderr) {
-			fs.writeFile(`${rootPath}/vsc-extensions.txt`, stdout, (stderr2) => {
-				if (!stderr2) {
-					terminal.sendText(`echo 'Successfully exported' >> ${logFile}`);
-				} else {
-					terminal.sendText(`echo 'Export failed' >> ${logFile}`);
-				}
-				terminal.sendText(`echo '\nEND' >> ${logFile}`);
-			});
-		} else {
-			terminal.sendText(`echo 'Export failed' >> ${logFile}`);
-			terminal.sendText(`echo '\nEND' >> ${logFile}`);
-		}
+	terminal.sendText("code --list-extensions" + (process.platform != 'win32' ? " | sed ''" : "") + " > vsc-extensions.txt");
+	terminal.processId.then(() => {
+		terminal.sendText(`echo 'Successfully exported' >> ${logFile}`);
+		terminal.sendText(`echo '\nEND' >> ${logFile}`);
 	});
+
+	// exec('code --list-extensions', (stderr, stdout) => {
+	// 	if (!stderr) {
+	// 		fs.writeFile(`${rootPath}/vsc-extensions.txt`, stdout, (stderr2) => {
+	// 			if (!stderr2) {
+	// 				terminal.sendText(`echo 'Successfully exported' >> ${logFile}`);
+	// 			} else {
+	// 				terminal.sendText(`echo 'Export failed' >> ${logFile}`);
+	// 			}
+	// 			terminal.sendText(`echo '\nEND' >> ${logFile}`);
+	// 		});
+	// 	} else {
+	// 		terminal.sendText(`echo 'Export failed' >> ${logFile}`);
+	// 		terminal.sendText(`echo '\nEND' >> ${logFile}`);
+	// 	}
+	// });
 
 	watchFile('Export');
 }
